@@ -1,7 +1,16 @@
 # CI de Dart/Flutter (schematize-dart). Copie para .github/workflows/ci.yml.
+# Piso 27: CI remoto só antes de promover a hml / em release (tag) ou sob pedido. SEM pull_request e SEM push em branch.
+# O gate por commit é LOCAL: scripts/check-dart.sh + flutter analyze.
 # Config de analise: assets/lint/analysis_options.yaml (raiz do pacote).
 name: ci
-on: [push, pull_request]
+on:
+  workflow_dispatch:
+  push:
+    tags: ["hml-*", "v*"]
+    paths-ignore: ["**.md", "docs/**"]
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
@@ -9,10 +18,14 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # versão fixada no repo (.fvmrc, {"flutter": "X.Y.Z"}), nunca "latest"
+      # `flutter-version-file: pubspec.yaml` NÃO é pino: lê só a faixa de environment.flutter
+      - id: fvm
+        run: echo "versao=$(jq -er .flutter .fvmrc)" >> "$GITHUB_OUTPUT"
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           channel: stable
-          flutter-version-file: pubspec.yaml  # versao fixada no repo, nunca "latest"
+          flutter-version: ${{ steps.fvm.outputs.versao }}
           cache: true
       - run: flutter pub get
       - run: dart format --set-exit-if-changed .
