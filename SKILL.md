@@ -1,7 +1,7 @@
 ---
 name: schematize-dart
 metadata:
-  version: 0.4.0
+  version: 0.5.0
 description: >-
   Piso de Dart/Flutter para clientes mobile. Use ao tocar pubspec.yaml ou *.dart: null safety sem '!', await em Futures, context.mounted, segredo fora do bundle. IAM/lojas: mobile.
 ---
@@ -12,7 +12,7 @@ description: >-
 Recorte de **linguagem e framework**. A base agnóstica é a **`schematize-engineering`**; o piso de
 **app** é da **`schematize-mobile`** — e, no que é de app, **ela manda**.
 
-**Versão:** skill `schematize-dart` v0.4.0. Changelog em `CHANGELOG.md`.
+**Versão:** skill `schematize-dart` v0.5.0. Changelog em `CHANGELOG.md`.
 
 ## Precedência e herança (leia antes de divergir)
 

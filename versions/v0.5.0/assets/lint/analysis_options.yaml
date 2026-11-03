@@ -1,0 +1,21 @@
+# analysis_options.yaml (schematize-dart): o piso explicito, nao so herdado do flutter_lints.
+include: package:flutter_lints/flutter.yaml
+analyzer:
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+  errors:
+    unawaited_futures: error
+    use_build_context_synchronously: error
+    avoid_dynamic_calls: error
+linter:
+  rules:
+    - unawaited_futures
+    - use_build_context_synchronously
+    - avoid_dynamic_calls
+    - cancel_subscriptions
+    - close_sinks
+    - prefer_const_constructors
+    - avoid_print
+    - only_throw_errors

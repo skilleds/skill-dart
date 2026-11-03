@@ -1,0 +1,12 @@
+slug = "dart"
+name = "schematize-dart"
+tag = "Linguagem · Dart/Flutter"
+status = "beta"
+order = 30
+current_version = "0.5.0"
+href = "/dart"
+
+[descriptions]
+pt = "O piso de Dart/Flutter da casa: `!` desliga o null safety pelo qual você pagou, Future sem await é ordem que ninguém escreveu, stream sem cancel vaza, BuildContext depois de await exige mounted, segredo fora do bundle, pubspec.lock commitado e os lints do piso explícitos."
+en = "The house's Dart/Flutter floor: `!` turns off the null safety you paid for, an unawaited Future is an execution order nobody wrote, an uncancelled stream leaks, BuildContext after await requires mounted, no secrets in the bundle, committed pubspec.lock and the floor's lints made explicit."
+es = "El piso de Dart/Flutter de la casa: `!` apaga el null safety que pagaste, un Future sin await es un orden que nadie escribió, un stream sin cancel filtra, BuildContext tras await exige mounted, sin secretos en el bundle, pubspec.lock commiteado y los lints del piso explícitos."
