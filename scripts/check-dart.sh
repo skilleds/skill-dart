@@ -25,25 +25,52 @@ command -v flutter >/dev/null 2>&1 || command -v dart >/dev/null 2>&1 \
   || avisos+=("SDK do Dart/Flutter ausente nesta máquina: o gate rodou só as regras TEXTUAIS. Onde houver \`flutter analyze\`, é ele que manda")
 
 # --------------------------------------------------------- projeto: lock e lints exigidos
-if [ -f "$raiz/pubspec.yaml" ]; then
-  ehApp=0
-  grep -qE '^\s*flutter:\s*$|^\s*sdk:\s*flutter' "$raiz/pubspec.yaml" && ehApp=1
-  if [ "$ehApp" = 1 ] && [ ! -f "$raiz/pubspec.lock" ]; then
-    erros+=("pubspec.lock ausente numa APLICAÇÃO — sem lock, duas máquinas resolvem versões diferentes (plataforma.md secao 1)")
-  fi
-  grep -qE '^\s*environment:' "$raiz/pubspec.yaml" \
-    || erros+=("pubspec.yaml sem \`environment: sdk:\` — a versão do SDK é declarada, não herdada")
-  grep -qE '^\s*dependency_overrides:' "$raiz/pubspec.yaml" \
-    && avisos+=("\`dependency_overrides\` presente — é dívida com data: registre por que existe e quando sai")
-fi
-if [ -f "$raiz/analysis_options.yaml" ]; then
-  for lint in unawaited_futures use_build_context_synchronously avoid_dynamic_calls cancel_subscriptions; do
-    grep -qE "^\s*-?\s*$lint\s*:?\s*(true)?\s*$" "$raiz/analysis_options.yaml" \
-      || avisos+=("analysis_options.yaml sem \`$lint\` explícito — herdar flutter_lints NÃO basta (stack-versoes.md)")
+LINTS=(unawaited_futures use_build_context_synchronously avoid_dynamic_calls cancel_subscriptions close_sinks prefer_const_constructors avoid_print only_throw_errors)
+
+# sobe de $1 até a raiz procurando o arquivo $2 (workspace/monorepo: lock e análise podem morar acima)
+acima() {
+  local d="$1" nome="$2"
+  while :; do
+    [ -f "$d/$nome" ] && { echo "$d/$nome"; return 0; }
+    [ "$d" = "$raiz" ] && return 1
+    local pai; pai="$(dirname "$d")"
+    [ "$pai" = "$d" ] && return 1
+    d="$pai"
   done
-else
-  [ -f "$raiz/pubspec.yaml" ] && erros+=("sem \`analysis_options.yaml\` — o gate do projeto é o \`flutter analyze\`, e ele precisa das regras do piso ligadas")
-fi
+}
+
+pubspecs=()
+while IFS= read -r -d '' f; do pubspecs+=("$f"); done < <(
+  find "$raiz" -type f -name 'pubspec.yaml' \
+    -not -path '*/.dart_tool/*' -not -path '*/build/*' -not -path '*/.git/*' \
+    -not -path '*/versions/*' -not -path '*/node_modules/*' -not -path '*/.symlinks/*' -print0 2>/dev/null
+)
+for ps in "${pubspecs[@]}"; do
+  dir="$(dirname "$ps")"; rel="${ps#"$raiz"/}"; [ "$rel" = "$ps" ] && rel="pubspec.yaml"
+  # app = depende do SDK Flutter, NÃO é plugin e (publish_to none OU tem lib/main.dart).
+  # package/plugin NÃO commita lock (plataforma.md secao 1).
+  ehFlutter=0; ehPlugin=0; ehApp=0
+  grep -qE '^\s*sdk:\s*flutter' "$ps" && ehFlutter=1
+  grep -qE '^\s+plugin:\s*$' "$ps" && ehPlugin=1
+  if [ "$ehFlutter" = 1 ] && [ "$ehPlugin" = 0 ]; then
+    if grep -qE "^\s*publish_to:\s*['\"]?none" "$ps" || [ -f "$dir/lib/main.dart" ]; then ehApp=1; fi
+  fi
+  if [ "$ehApp" = 1 ] && ! acima "$dir" pubspec.lock >/dev/null; then
+    erros+=("$rel: pubspec.lock ausente numa APLICAÇÃO — sem lock, duas máquinas resolvem versões diferentes (plataforma.md secao 1)")
+  fi
+  grep -qE '^\s*environment:' "$ps" \
+    || erros+=("$rel: sem \`environment: sdk:\` — a versão do SDK é declarada, não herdada")
+  grep -qE '^\s*dependency_overrides:' "$ps" \
+    && avisos+=("$rel: \`dependency_overrides\` presente — é dívida com data: registre por que existe e quando sai")
+  if ao="$(acima "$dir" analysis_options.yaml)"; then
+    for lint in "${LINTS[@]}"; do
+      grep -qE "^\s*-?\s*$lint\s*:?\s*(true|error|warning)?\s*$" "$ao" \
+        || erros+=("${ao#"$raiz"/}: sem \`$lint\` explícito — o piso exige os 8 lints e herdar flutter_lints NÃO basta (stack-versoes.md)")
+    done
+  else
+    erros+=("$rel: sem \`analysis_options.yaml\` — o gate do projeto é o \`flutter analyze\`, e ele precisa das regras do piso ligadas")
+  fi
+done
 
 # --------------------------------------------------------- piso por arquivo
 for f in "${arquivos[@]}"; do
@@ -66,13 +93,34 @@ for f in "${arquivos[@]}"; do
     && avisos+=("$nome: \`catch (e) { print(e); }\` — print não é log de produção e o stack trace some (use \`on X catch (e, s)\`)")
   grep -qE '\bprint\s*\(' <<< "$codigo" && [ "$ehTeste" = 0 ] \
     && avisos+=("$nome: \`print\` — sem nível, sem contexto, some no release; use o logger do projeto")
-  # BuildContext depois de await, sem checar mounted
-  if grep -qE 'await ' <<< "$codigo" && grep -qE '\bcontext\b' <<< "$codigo" && ! grep -qE 'mounted' "$f"; then
-    avisos+=("$nome: usa \`context\` num arquivo com \`await\` e sem \`mounted\` — o widget pode ter sido desmontado (a armadilha nº 1 do Flutter)")
+  # BuildContext depois de await, sem checar mounted: por região (reinicia a cada assinatura de função)
+  if grep -qE '\bcontext\b' <<< "$codigo"; then
+    achou="$(awk '
+      /^[[:space:]]*(@override|(static[[:space:]]+)?(Future|void|Widget|Stream|[A-Z][A-Za-z0-9_]*)(<[^>]*>)?[[:space:]]+[A-Za-z_][A-Za-z0-9_]*[[:space:]]*\()/ { aw=0 }
+      /mounted/ { aw=0 }
+      aw && /(^|[^.A-Za-z0-9_])context([^A-Za-z0-9_]|$)/ && !/BuildContext[[:space:]]+context/ { print NR; exit }
+      /await[[:space:]]/ { aw=1 }
+    ' <<< "$codigo")"
+    [ -n "$achou" ] && avisos+=("$nome:$achou: usa \`context\` depois de \`await\` sem \`mounted\`/\`context.mounted\` antes — o widget pode ter sido desmontado (a armadilha nº 1 do Flutter)")
   fi
-  # stream sem cancel
-  if grep -qE '\.listen\(' <<< "$codigo" && ! grep -qE 'cancel\(\)' "$f"; then
-    erros+=("$nome: \`.listen(\` sem \`cancel()\` no arquivo — subscription não cancelada é vazamento e dispara setState depois da tela morrer")
+  # stream sem cancel: por .listen( — a variável que recebe a subscription precisa de <var>.cancel(
+  # (Timer.cancel() e afins não contam; stdin/CLI/Process não têm ciclo de vida de tela)
+  if grep -qE '\.listen\(' <<< "$codigo"; then
+    while IFS= read -r st; do
+      grep -qE '\.listen\(' <<< "$st" || continue
+      grep -qE '\b(stdin|stdout|stderr|ProcessSignal|Process)\b' <<< "$st" && continue
+      grep -qE '(^|[^A-Za-z0-9_])return[[:space:]]' <<< "$st" && continue
+      var="$(sed -nE 's/.*[^A-Za-z0-9_.]([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*=[[:space:]]*[^=;(]*\.listen\(.*/\1/p; t; s/^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*=[[:space:]]*[^=;(]*\.listen\(.*/\1/p' <<< "$st" | head -n1)"
+      if [ -n "$var" ]; then
+        grep -qE "\\b$var\\??\\.cancel\\(" <<< "$codigo" \
+          || erros+=("$nome: subscription \`$var\` de \`.listen(\` sem \`$var.cancel()\` — vazamento; dispara setState depois da tela morrer")
+      elif grep -qE '\.add\([^;]*\.listen\(' <<< "$st"; then
+        grep -qE '\.cancel\(' <<< "$(grep -viE 'timer' <<< "$codigo")" \
+          || erros+=("$nome: \`.listen(\` guardado numa coleção, mas nenhum \`cancel()\` de subscription no arquivo — vazamento")
+      else
+        erros+=("$nome: \`.listen(\` sem guardar a subscription — não há como \`cancel()\`; vazamento e setState depois da tela morrer")
+      fi
+    done < <(tr '\n' ' ' <<< "$codigo" | tr ';' '\n')
   fi
   grep -qE 'shared_preferences|SharedPreferences' <<< "$codigo" \
     && grep -qiE 'token|senha|password|secret' "$f" \
