@@ -3,7 +3,7 @@
 Todas as mudanças relevantes deste pacote, no formato [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 com versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
-## [Não lançado]
+## [0.5.0] — 2026-11-03
 ### Corrigido
 - P0-1: template de CI sem `pull_request`/push em branch: `workflow_dispatch` + tags `hml-*`/`v*`, `concurrency` com cancel, `paths-ignore` de docs. Removido "trava o merge".
 - P1-12: CI não usa mais `flutter-version-file: pubspec.yaml` (lia só a faixa, não pinava); versão vem de `.fvmrc`. Comentário falso corrigido.
