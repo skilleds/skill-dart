@@ -39,5 +39,5 @@ isso na saída.
 
 ## 3. Feche
 
-Achado vira correção no mesmo PR ou item de checklist com dono. Mexeu no gate? rode o vermelho:
-`bash scripts/check-dart.test.sh` (9 casos).
+Achado vira correção no mesmo commit ou item de checklist com dono. Mexeu no gate? rode o vermelho:
+`bash scripts/check-dart.test.sh` (20 casos).

@@ -24,7 +24,7 @@ bash /tmp/skill-dart/install.sh .
   `plataforma` (lock, SDK, dependência, alvos, release), `stack-versoes` (anexo volátil datado, com
   **os lints que o piso exige ligados**).
 - **scripts/** — `check-dart.sh` (gate textual, que também olha `pubspec.yaml` e
-  `analysis_options.yaml`) e `check-dart.test.sh` (9 casos, 7 vermelhos).
+  `analysis_options.yaml`) e `check-dart.test.sh` (20 casos).
 - **assets/commands/** — `/dart-help`, `/dart-load`, `/dart-review`, `/dart-claude`, `/dart-cc`,
   `/dart-handoff`.
 - **assets/CLAUDE.md** — regra sempre-on.
@@ -41,11 +41,11 @@ bash /tmp/skill-dart/install.sh .
 
 ## Versão
 
-**v0.1.0** — changelog em `CHANGELOG.md`.
+**v0.4.0** — changelog em `CHANGELOG.md`.
 
 ## Regra de ouro
 
 **Herdar `flutter_lints` não basta.** O piso desta skill só existe de verdade quando as regras dele
-estão **explícitas** no `analysis_options.yaml` — e o `flutter analyze` trava o merge.
+estão **explícitas** no `analysis_options.yaml` — e o `flutter analyze` trava a conclusão local.
 
 MIT.

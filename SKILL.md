@@ -89,7 +89,7 @@ Assets prontos para copiar: `assets/ci/github-actions-ci.yml` (dart format, flut
    execução que ninguém escreveu, e o erro vira `unhandled exception` global.
 4. **Stream tem `cancel()` no `dispose()`**; `Timer`/`AnimationController` também. Sem isso é
    vazamento **e** `setState` depois da tela morrer.
-5. **`BuildContext` depois de `await` exige `if (!mounted) return;`** — a armadilha nº 1 do Flutter.
+5. **`BuildContext` depois de `await` exige `if (!mounted) return;` (`State`) ou `if (!context.mounted) return;` (qualquer lugar)** — a armadilha nº 1 do Flutter.
 6. **CPU pesado fora da UI thread** (`compute`/`Isolate`): o sintoma de ignorar é jank, não erro.
 7. **Erro com stack trace** (`on X catch (e, s)`); `catch (e) {}` e `print` como tratamento são
    VETADOS.
@@ -97,8 +97,10 @@ Assets prontos para copiar: `assets/ci/github-actions-ci.yml` (dart format, flut
    credencial em `flutter_secure_storage`/Keychain/Keystore.
 9. **`pubspec.lock` commitado em aplicação**; SDK e versão do Flutter **fixados** no CI.
 10. **Os lints do piso ficam explícitos** no `analysis_options.yaml` — herdar `flutter_lints` **não
-    basta**, e é o `flutter analyze` que trava o merge.
+    basta**, e é o `flutter analyze` que trava a conclusão local (o gate por commit é local).
 11. <!-- herdado:engineering/orquestracao:curto -->**Orquestrador não desenvolve; subagent barato executa.** O agent principal só planeja, despacha e revisa; ação onerosa vira micro-tasks para o executor mais barato que resolve: `haiku` (mecânico) / `sonnet` (código; falhou → mesmo subagent corrige, até 2 rodadas) → Codex `gpt-5.6-terra` → Cursor → subagent `opus` (motivo) → `park`; **visual vai direto ao Codex**; **imagem nunca pelo Claude: detectar Codex/Gemini e perguntar ao usuário qual usar (Codex é a sugestão), nunca API de imagem paga**; papéis em `agentes.toml`. No overdev, cada item do checklist vai a um subagent e o principal revisa antes do `- [x]`. **Sem frota ociosa:** idle com pendência volta ao trabalho; dependente de outro agent → mata e enfileira com gatilho; terminou → mata (§9.6). Detalhe: `schematize-engineering` → `references/orquestracao.md` §9.<!-- /herdado -->
+
+Herda os pisos 22–29 da `schematize-engineering` (git como trava de conclusão, deploy só do git, ops é o gate da IA, sem agents inúteis, relatório 30 min/handoff 6 h, CI remoto só antes do hml, microserviço autônomo, build em dev/hml + higiene).
 
 ## Relação com as outras skills
 

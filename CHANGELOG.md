@@ -3,6 +3,17 @@
 Todas as mudanças relevantes deste pacote, no formato [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 com versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [Não lançado]
+### Corrigido
+- P0-1: template de CI sem `pull_request`/push em branch: `workflow_dispatch` + tags `hml-*`/`v*`, `concurrency` com cancel, `paths-ignore` de docs. Removido "trava o merge".
+- P1-12: CI não usa mais `flutter-version-file: pubspec.yaml` (lia só a faixa, não pinava); versão vem de `.fvmrc`. Comentário falso corrigido.
+- P1-10: gate varre todos os `pubspec.yaml` (monorepo); só APLICAÇÃO (Flutter, não plugin, `publish_to: none` ou `lib/main.dart`) exige `pubspec.lock` (aceita o lock num ancestral/workspace).
+- P1-11/P2-9: `.listen(` exige `<var>.cancel()` da própria subscription (Timer.cancel não vale; stdin/CLI/return isentos); `context` depois de `await` checado por função; `context.mounted` padronizado.
+- P1-14: gate exige os 8 lints do piso (erro, não aviso).
+- P1-1/P1-2: bloco "Herda os pisos 22–29" em SKILL.md e assets/CLAUDE.md. README em v0.4.0, contagem de testes (20).
+### Em espera
+- [~] P1-13: Flutter 3.47/Dart 3.13, Impeller no desktop e depreciação Material/Cupertino em `stack-versoes.md` seguem como estavam (marcadas `reverificar`): docs.flutter.dev/release/archive (2026-11-03) não carregou a tabela stable nem cita Dart nem Impeller/Material; sem fonte oficial confirmada, sem alteração.
+
 ## [0.4.0] — 2026-10-14
 Description reduzida para o orçamento de listagem do catálogo; sem mudança de piso.
 
